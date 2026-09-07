@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Standalone Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Courier New', monospace;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #setup-screen { text-align: center; padding: 2rem; }
+    #setup-screen h1 { font-size: 13px; letter-spacing: 0.3em; color: #888; text-transform: uppercase; margin-bottom: 3rem; }
+    #setup-screen label { display: block; font-size: 11px; letter-spacing: 0.2em; color: #666; text-transform: uppercase; margin-bottom: 0.5rem; }
+    #dyad-input {
+      background: transparent; border: none; border-bottom: 2px solid #444;
+      color: #e8e8e8; font-family: 'Courier New', monospace; font-size: 48px;
+      font-weight: bold; width: 120px; text-align: center; outline: none;
+      padding: 0.25rem; letter-spacing: 0.15em; transition: border-color 0.2s;
+    }
+    #dyad-input:focus { border-color: #c8ff00; }
+    #start-btn {
+      display: block; margin: 2.5rem auto 0; background: #c8ff00; color: #0f0f0f;
+      border: none; font-family: 'Courier New', monospace; font-size: 13px;
+      font-weight: bold; letter-spacing: 0.2em; text-transform: uppercase;
+      padding: 14px 36px; cursor: pointer;
+    }
+    #main-panel { display: none; width: 100%; max-width: 800px; padding: 2rem; }
+
+    .setup-input {
+      background: transparent; border: none; border-bottom: 1px solid #333;
+      color: #e8e8e8; font-family: 'Courier New', monospace; font-size: 14px;
+      outline: none; padding: 5px 2px; transition: border-color 0.2s;
+    }
+    .setup-input:focus { border-color: #c8ff00; }
+    .setup-input::placeholder { color: #444; }
+    .name-input { width: 180px; text-align: center; font-size: 18px; font-weight: bold; }
+    .thema-input { width: 100%; }
+    .themen-block { text-align: left; max-width: 360px; margin: 0 auto 1.5rem; }
+    .themen-block .tb-kopf {
+      font-size: 12px; letter-spacing: 0.15em; color: #c8ff00;
+      text-transform: uppercase; margin-bottom: 0.75rem;
+    }
+    .themen-zeile { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+    .themen-zeile .tz-nr { font-size: 10px; color: #555; min-width: 52px; letter-spacing: 0.1em; }
+    .name-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; justify-content: center; }
+    .name-row .g-label {
+      font-size: 12px; letter-spacing: 0.15em; color: #666;
+      text-transform: uppercase; min-width: 24px; text-align: right;
+    }
+    .trenner { border: none; border-top: 1px solid #1e1e1e; margin: 1.5rem 0; }
+
+    #sync-section { margin-top: 2.5rem; }
+    #sync-btn {
+      background: transparent; border: 1px solid #444; color: #999;
+      font-family: 'Courier New', monospace; font-size: 12px;
+      letter-spacing: 0.1em; padding: 10px 22px; cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #sync-btn:hover:not(:disabled) { border-color: #4bb3e8; color: #4bb3e8; }
+    #sync-btn:disabled { opacity: 0.45; cursor: default; }
+    #sync-status { margin-top: 0.7rem; font-size: 11px; color: #888; line-height: 1.7; }
+    #sync-status .val { color: #4bb3e8; font-weight: bold; }
+    #log .entry.sync, #log .entry.sync span { color: #4bb3e8; }
+    #header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      border-bottom: 1px solid #222; padding-bottom: 1rem; margin-bottom: 2rem;
+    }
+    #header h1 { font-size: 13px; letter-spacing: 0.3em; color: #888; text-transform: uppercase; }
+    #dyad-badge { font-size: 22px; font-weight: bold; color: #c8ff00; letter-spacing: 0.1em; }
+    .section-label { font-size: 11px; letter-spacing: 0.25em; color: #555; text-transform: uppercase; margin-bottom: 1rem; }
+    .q-btn {
+      background: transparent; border: 1px solid #333; color: #ccc;
+      font-family: 'Courier New', monospace; font-size: 12px; letter-spacing: 0.1em;
+      padding: 7px 12px; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .q-btn:hover { background: #1a1a1a; border-color: #555; color: #fff; }
+    .q-btn.sent { border-color: #c8ff00; color: #c8ff00; cursor: pointer; }
+
+    /* Trials und Testtrials als Liste untereinander */
+    .trial-liste { display: flex; flex-direction: column; gap: 0.35rem; }
+    .trial-btn {
+      display: flex; align-items: baseline; gap: 0.75rem;
+      width: 100%; text-align: left; padding: 10px 14px;
+    }
+    .trial-btn .tb-nr {
+      min-width: 88px; flex-shrink: 0; color: #777;
+      font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    }
+    .trial-btn.sent .tb-nr { color: #c8ff00; }
+    .trial-btn .tb-person { color: #e8e8e8; font-weight: bold; min-width: 90px; flex-shrink: 0; }
+    .trial-btn .tb-thema { color: #999; }
+    .trial-btn.sent .tb-thema { color: #8a9e4a; }
+    .trial-btn .tb-haken { margin-left: auto; color: #c8ff00; flex-shrink: 0; }
+    #log {
+      background: #080808; border: 1px solid #1e1e1e; padding: 1rem;
+      font-size: 11px; color: #555; height: 160px; overflow-y: auto; line-height: 1.8;
+    }
+    #log .entry { color: #888; }
+    #log .entry span { color: #c8ff00; }
+    #export-btn {
+      display: block; margin: 2rem auto 0; background: transparent;
+      border: 1px solid #444; color: #888; font-family: "Courier New", monospace;
+      font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+      padding: 12px 28px; cursor: pointer; transition: border-color 0.2s, color 0.2s;
+    }
+    #export-btn:hover { border-color: #c8ff00; color: #c8ff00; }
+    #reset-btn {
+      display: block; margin: 1rem auto 0; background: transparent;
+      border: 1px solid #333; color: #555; font-family: "Courier New", monospace;
+      font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 8px 20px; cursor: pointer;
+    }
+    #reset-btn:hover { border-color: #ff4444; color: #ff4444; }
+  </style>
+</head>
+<body>
+
+<div id="setup-screen">
+  <h1>Standalone Admin — Zeitstempel <span style="color:#444;font-size:10px;letter-spacing:0.1em;">v7</span></h1>
+  <label for="dyad-input">Dyaden-ID</label>
+  <input id="dyad-input" type="text" maxlength="4" placeholder="XX" autofocus />
+
+  <hr class="trenner" style="margin-top:2rem;" />
+  <p style="font-size:11px;letter-spacing:0.2em;color:#555;text-transform:uppercase;margin-bottom:1.25rem;">Namen</p>
+  <div class="name-row">
+    <span class="g-label">A</span>
+    <input id="name-A" class="setup-input name-input" type="text" placeholder="Name A" />
+  </div>
+  <div class="name-row">
+    <span class="g-label">B</span>
+    <input id="name-B" class="setup-input name-input" type="text" placeholder="Name B" />
+  </div>
+
+  <hr class="trenner" style="margin-top:2rem;" />
+  <p style="font-size:11px;letter-spacing:0.2em;color:#555;text-transform:uppercase;margin-bottom:1.25rem;">Themen</p>
+
+  <div class="themen-block">
+    <p class="tb-kopf">Person A</p>
+    <div class="themen-zeile"><span class="tz-nr">Trial 2</span><input id="thema-A-0" class="setup-input thema-input" type="text" placeholder="Thema 1" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 6</span><input id="thema-A-1" class="setup-input thema-input" type="text" placeholder="Thema 2" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 10</span><input id="thema-A-2" class="setup-input thema-input" type="text" placeholder="Thema 3" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 14</span><input id="thema-A-3" class="setup-input thema-input" type="text" placeholder="Thema 4" /></div>
+  </div>
+
+  <div class="themen-block">
+    <p class="tb-kopf">Person B</p>
+    <div class="themen-zeile"><span class="tz-nr">Trial 4</span><input id="thema-B-0" class="setup-input thema-input" type="text" placeholder="Thema 1" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 8</span><input id="thema-B-1" class="setup-input thema-input" type="text" placeholder="Thema 2" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 12</span><input id="thema-B-2" class="setup-input thema-input" type="text" placeholder="Thema 3" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 16</span><input id="thema-B-3" class="setup-input thema-input" type="text" placeholder="Thema 4" /></div>
+  </div>
+
+  <button id="start-btn" onclick="startSession()">Sitzung starten</button>
+</div>
+
+<div id="main-panel">
+  <div id="header">
+    <h1>Zeitstempel <span style="color:#444;font-size:10px;letter-spacing:0.1em;">v7</span></h1>
+    <div id="dyad-badge"></div>
+  </div>
+
+  <div id="timer-panel" style="display:none;border:2px solid #c8ff00;padding:1.25rem;margin-bottom:2rem;text-align:center;">
+    <div id="timer-trial" style="font-size:13px;letter-spacing:0.25em;color:#888;text-transform:uppercase;"></div>
+    <div id="timer-person" style="font-size:26px;font-weight:bold;color:#c8ff00;margin-top:0.5rem;letter-spacing:0.05em;"></div>
+    <div id="timer-thema" style="font-size:19px;color:#e8e8e8;margin-top:0.4rem;"></div>
+    <div id="timer-count" style="font-size:64px;font-weight:bold;color:#e8e8e8;margin-top:0.75rem;letter-spacing:0.05em;">3:00</div>
+    <button onclick="timerAbbrechen()" style="margin-top:0.75rem;background:transparent;border:1px solid #444;color:#666;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;padding:7px 18px;cursor:pointer;">Trial abbrechen</button>
+  </div>
+
+  <div id="event-buttons">
+
+    <p class="section-label">Testungsstart</p>
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+      <button class="q-btn" onclick="logEvent('Start Testung', this)">Start Testung</button>
+      <button class="q-btn" onclick="logEvent('Start EKG - A', this)">Start EKG - A</button>
+      <button class="q-btn" onclick="logEvent('Start EKG - B', this)">Start EKG - B</button>
+      <button class="q-btn" onclick="logEvent('Start Baseline', this)">Start Baseline</button>
+      <button class="q-btn" onclick="logEvent('Start Interaktion', this)">Start Interaktion</button>
+    </div>
+
+    <p class="section-label">Testtrials</p>
+    <div id="testtrial-buttons" class="trial-liste" style="margin-bottom:1.5rem;"></div>
+
+    <p class="section-label">Trials</p>
+    <div id="trial-buttons" class="trial-liste" style="margin-bottom:1.5rem;"></div>
+
+    <p class="section-label">Ende Testung</p>
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:2rem;">
+      <button class="q-btn" onclick="logEvent('Ende Interaktion', this)">Ende Interaktion</button>
+      <button class="q-btn" onclick="logEvent('Ende EKG - A', this)">Ende EKG - A</button>
+      <button class="q-btn" onclick="logEvent('Ende EKG - B', this)">Ende EKG - B</button>
+      <button class="q-btn" onclick="logEvent('Ende Testung', this)">Ende Testung</button>
+    </div>
+
+  </div>
+
+  <div id="sync-section">
+    <p class="section-label">Zeitabgleich (Internetzeit)</p>
+    <button id="sync-btn" onclick="zeitSync()">Jetzt abgleichen</button>
+    <div id="sync-status">Noch kein Abgleich durchgeführt.</div>
+  </div>
+
+  <p class="section-label">Log</p>
+  <div id="log"><div class="entry">Bereit.</div></div>
+
+  <button id="export-btn" onclick="saExport()">CSV exportieren</button>
+  <button id="reset-btn" onclick="saReset()">Alles zurücksetzen</button>
+</div>
+
+<script>
+  let dyadId = "";
+  const namen  = { A: "", B: "" };
+  const themen = { A: ["", "", "", ""], B: ["", "", "", ""] };
+
+  function lokalerZeitstempel(ms) {
+    const d = ms ? new Date(ms) : new Date();
+    const p = n => String(n).padStart(2, "0");
+    return p(d.getDate()) + "." + p(d.getMonth()+1) + "." + d.getFullYear() + ", " +
+           p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) + "," + String(d.getMilliseconds()).padStart(3, "0");
+  }
+
+  function uhrzeit(ms) {
+    const d = ms ? new Date(ms) : new Date();
+    return d.toTimeString().slice(0, 8) + "." + String(d.getMilliseconds()).padStart(3, "0");
+  }
+
+  function getEvents() {
+    return JSON.parse(localStorage.getItem("saa_events") || "[]");
+  }
+
+  function startSession() {
+    const val = document.getElementById("dyad-input").value.trim();
+    if (!val) return;
+
+    ["A", "B"].forEach(r => {
+      namen[r] = (document.getElementById("name-" + r).value || "").trim();
+      for (let i = 0; i < 4; i++) {
+        themen[r][i] = (document.getElementById("thema-" + r + "-" + i).value || "").trim();
+      }
+    });
+    if (!namen.A || !namen.B) { alert("Bitte beide Namen eintragen."); return; }
+
+    dyadId = val;
+    localStorage.setItem("saa_dyadId", dyadId);
+    localStorage.setItem("saa_namen", JSON.stringify(namen));
+    localStorage.setItem("saa_themen", JSON.stringify(themen));
+    zeigeMain();
+    zeitSync();   // einmal automatisch zu Beginn
+  }
+
+  function zeigeMain() {
+    document.getElementById("setup-screen").style.display = "none";
+    document.getElementById("main-panel").style.display = "block";
+    document.getElementById("dyad-badge").textContent = "Dyade " + dyadId;
+
+    // Button-Zustände aus gespeicherten Events wiederherstellen
+    baueTrialButtons();
+
+    const events = getEvents();
+    const geklickt = new Set(events.map(e => e.event));
+    document.querySelectorAll("#event-buttons .q-btn").forEach(btn => {
+      const trial = btn.dataset.trial;
+      const marker = trial ? "Start " + trial : btn.textContent.replace(" ✓", "");
+      if (geklickt.has(marker)) setzeHaken(btn);
+    });
+
+    // Log wiederherstellen
+    const log = document.getElementById("log");
+    log.innerHTML = "";
+    if (events.length === 0) {
+      log.innerHTML = '<div class="entry">Bereit.</div>';
+    } else {
+      events.forEach(e => addLog("Ereignis: <span>" + e.event + "</span> um " + uhrzeit(e.time)));
+    }
+  }
+
+  function logEvent(name, btn) {
+    const now = Date.now();
+    const events = getEvents();
+    events.push({
+      dyad_id: dyadId, participant: "admin", fragebogen: "—",
+      question: "—", value: "—", time: now,
+      server_timestamp: lokalerZeitstempel(now), event: name
+    });
+    localStorage.setItem("saa_events", JSON.stringify(events));
+    setzeHaken(btn);
+    addLog("Ereignis: <span>" + name + "</span> um " + uhrzeit(now));
+  }
+
+  function addLog(html) {
+    const log = document.getElementById("log");
+    const entry = document.createElement("div");
+    entry.className = "entry";
+    entry.innerHTML = html;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function saExport() {
+    const events = getEvents();
+    if (events.length === 0) { alert("Keine Ereignisse vorhanden."); return; }
+    const cols = ["dyad_id", "participant", "fragebogen", "question", "value", "time", "server_timestamp", "event", "offset_ms", "rtt_ms", "zeitquelle"];
+    const csvLines = [cols.join(",")];
+    events.forEach(r => {
+      csvLines.push(cols.map(c => '"' + String(r[c] !== undefined ? r[c] : "").replace(/"/g, '""') + '"').join(","));
+    });
+    const blob = new Blob([csvLines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    const datum = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16);
+    a.href = URL.createObjectURL(blob);
+    a.download = "standalone_admin_" + (dyadId || "unbekannt") + "_" + datum + ".csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function saReset() {
+    if (!confirm("Wirklich ALLE Zeitstempel und die Sitzung löschen?")) return;
+    if (!confirm("Sicher? Wurde vorher die CSV exportiert?")) return;
+    localStorage.removeItem("saa_events");
+    localStorage.removeItem("saa_dyadId");
+    localStorage.removeItem("saa_timer");
+    localStorage.removeItem("saa_namen");
+    localStorage.removeItem("saa_themen");
+    localStorage.removeItem("saa_trialinfos");
+    location.reload();
+  }
+
+  document.getElementById("dyad-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") startSession();
+  });
+
+  // ── ZEITABGLEICH MIT INTERNETZEIT (NTP-Prinzip) ──────
+  // Misst den Offset der Geräteuhr gegenüber einer Referenzzeit.
+  // Die Zeitstempel selbst bleiben unverändert (Geräteuhr) — der Offset
+  // wird nur protokolliert, damit er in der Auswertung angewendet werden kann.
+
+  const ZEIT_APIS = [
+    { name: "worldtimeapi",
+      url: "https://worldtimeapi.org/api/timezone/Etc/UTC",
+      lies: (d) => new Date(d.utc_datetime).getTime() },
+    { name: "timeapi.io",
+      url: "https://timeapi.io/api/Time/current/zone?timeZone=UTC",
+      lies: (d) => new Date(d.dateTime + "Z").getTime() }
+  ];
+
+  async function einzelMessung(api) {
+    const t0 = Date.now();
+    const res = await fetch(api.url, { cache: "no-store" });
+    const t3 = Date.now();
+    const daten = await res.json();
+    const referenz = api.lies(daten);
+    if (!referenz || isNaN(referenz)) throw new Error("Antwort nicht lesbar");
+    const rtt = t3 - t0;
+    const offset = Math.round(referenz + rtt / 2 - t3);
+    return { offset: offset, rtt: rtt, api: api.name };
+  }
+
+  async function zeitSync() {
+    const btn = document.getElementById("sync-btn");
+    const status = document.getElementById("sync-status");
+    btn.disabled = true;
+    btn.textContent = "Messe...";
+    status.textContent = "Abgleich läuft...";
+
+    const messungen = [];
+    for (const api of ZEIT_APIS) {
+      for (let i = 0; i < 3; i++) {
+        try { messungen.push(await einzelMessung(api)); }
+        catch (e) { /* API nicht erreichbar — nächste probieren */ }
+      }
+      if (messungen.length >= 3) break;
+    }
+
+    if (messungen.length === 0) {
+      status.innerHTML = "Kein Abgleich möglich — keine Internetverbindung zu den Zeitservern.";
+      btn.disabled = false;
+      btn.textContent = "Erneut abgleichen";
+      return;
+    }
+
+    const beste = messungen.reduce((a, b) => (b.rtt < a.rtt ? b : a));
+    const vz = beste.offset > 0 ? "+" : "";
+
+    status.innerHTML =
+      "Geräteuhr weicht ab um <span class='val'>" + vz + beste.offset + " ms</span> " +
+      "(Referenzzeit minus Geräteuhr)<br>" +
+      "Messunsicherheit ca. <span class='val'>±" + Math.round(beste.rtt / 2) + " ms</span> " +
+      "(RTT " + beste.rtt + " ms, " + messungen.length + " Messungen, Quelle " + beste.api + ")";
+
+    // Als eigener Eintrag ins Protokoll
+    const now = Date.now();
+    const events = getEvents();
+    events.push({
+      dyad_id: dyadId, participant: "admin", fragebogen: "—",
+      question: "—", value: "—", time: now,
+      server_timestamp: lokalerZeitstempel(now), event: "Zeitabgleich",
+      offset_ms: beste.offset, rtt_ms: beste.rtt, zeitquelle: beste.api
+    });
+    localStorage.setItem("saa_events", JSON.stringify(events));
+    addLog("<span class='sync'>⏱ Zeitabgleich</span> — Offset " + vz + beste.offset +
+           " ms (±" + Math.round(beste.rtt / 2) + " ms) um " + uhrzeit(now));
+
+    btn.disabled = false;
+    btn.textContent = "Erneut abgleichen";
+  }
+
+  // ── TRIAL-TIMER UND TÖNE ─────────────────────────────
+
+  const TRIAL_SEQUENCE = [
+    "Testtrial 1", "Testtrial 2",
+    ...Array.from({length: 16}, (_, i) => "Trial " + (i + 1))
+  ];
+  const TRIAL_DAUER = { testtrial: 60, trial: 180 }; // Sekunden
+  let timerHandle = null;
+  let aktiverTrial = null;
+
+  function trialDauer(name) {
+    return name.toLowerCase().startsWith("testtrial") ? TRIAL_DAUER.testtrial : TRIAL_DAUER.trial;
+  }
+
+  // ── Vorgegebene Themen ────────────────────────────────
+  const TESTTRIAL_THEMEN = {
+    "Testtrial 1": "Beschreibung Raum",
+    "Testtrial 2": "Beschreibung Tagesablauf"
+  };
+
+  // Neutrale (vorgegebene) Themen der ungeraden Trials
+  const NEUTRALE_THEMEN = {
+    1:  "Beschreibung Wäschewaschen",
+    3:  "Beschreibung Wohnung putzen",
+    5:  "Beschreibung Ei kochen",
+    7:  "Beschreibung Zimmerpflanzenpflege",
+    9:  "Beschreibung Lebensmitteleinkauf",
+    11: "Beschreibung Koffer packen",
+    13: "Beschreibung Morgenroutine",
+    15: "Beschreibung Abendroutine"
+  };
+
+  // ── Trial-Zuordnung ───────────────────────────────────
+  // Sprecherfolge: A neutral, A eigenes, B neutral, B eigenes, ...
+  //   ungerade Trials = neutrales (vorgegebenes) Thema
+  //   gerade Trials   = selbst eingereichtes Thema
+  function trialInfo(trialName) {
+    const m = trialName.match(/^Trial (\d+)$/);
+    if (!m) return null;
+    const n = parseInt(m[1], 10);
+    const rolle = (Math.ceil(n / 2) % 2 === 1) ? "A" : "B";
+    const person = namen[rolle] || ("Person " + rolle);
+    if (n % 2 === 1) {
+      return { rolle: rolle, name: person,
+               thema: NEUTRALE_THEMEN[n] || "Neutral", eigen: false };
+    }
+    const idx = rolle === "A" ? (n - 2) / 4 : (n - 4) / 4;
+    const thema = (themen[rolle] && themen[rolle][idx]) || "";
+    return { rolle: rolle, name: person, thema: thema || "(kein Thema)", eigen: true };
+  }
+
+  function testtrialInfo(name) {
+    const rolle = name === "Testtrial 1" ? "A" : "B";
+    return { rolle: rolle, name: namen[rolle] || ("Person " + rolle),
+             thema: TESTTRIAL_THEMEN[name] || "", eigen: false };
+  }
+
+  function trialLabel(name) {
+    if (name.startsWith("Testtrial")) {
+      const ti = testtrialInfo(name);
+      return name + " — " + ti.name + ": " + ti.thema;
+    }
+    const i = trialInfo(name);
+    return i ? name + " — " + i.name + ": " + i.thema : name;
+  }
+
+  // ── Töne (Web Audio API) ──
+  let audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+
+  function spieleTon(freq, dauerMs, wiederholungen, pauseMs) {
+    wiederholungen = wiederholungen || 1;
+    pauseMs = pauseMs || 130;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    for (let i = 0; i < wiederholungen; i++) {
+      const start = ctx.currentTime + i * (dauerMs + pauseMs) / 1000;
+      const dauerS = dauerMs / 1000;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.4, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + dauerS);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dauerS + 0.05);
+    }
+  }
+
+  function baueTrialButtons() {
+    const testCont = document.getElementById("testtrial-buttons");
+    const cont = document.getElementById("trial-buttons");
+    if (!cont || !testCont) return;
+    testCont.innerHTML = "";
+    cont.innerHTML = "";
+    TRIAL_SEQUENCE.forEach(name => {
+      const info = name.startsWith("Testtrial") ? testtrialInfo(name) : trialInfo(name);
+      const btn = document.createElement("button");
+      btn.className = "q-btn trial-btn";
+      btn.id = "tsbtn-" + name.replace(/ /g, "-");
+      btn.dataset.trial = name;
+
+      const nr = document.createElement("span");
+      nr.className = "tb-nr";
+      nr.textContent = name;
+      btn.appendChild(nr);
+
+      const person = document.createElement("span");
+      person.className = "tb-person";
+      person.textContent = info ? info.name : "";
+      btn.appendChild(person);
+
+      const thema = document.createElement("span");
+      thema.className = "tb-thema";
+      thema.textContent = (info && info.thema) ? info.thema : "";
+      btn.appendChild(thema);
+
+      btn.onclick = () => starteTrial(name, btn);
+      (name.startsWith("Testtrial") ? testCont : cont).appendChild(btn);
+    });
+  }
+
+  // Haken setzen, ohne das Label zu zerstören
+  function setzeHaken(btn) {
+    if (!btn) return;
+    btn.classList.add("sent");
+    if (btn.dataset.trial) {
+      if (!btn.querySelector(".tb-haken")) {
+        const h = document.createElement("span");
+        h.className = "tb-haken";
+        h.textContent = "✓";
+        btn.appendChild(h);
+      }
+    } else if (!btn.textContent.endsWith(" ✓")) {
+      btn.textContent = btn.textContent + " ✓";
+    }
+  }
+
+  function starteTrial(trialName, btn) {
+    if (aktiverTrial) {
+      alert("Es läuft bereits ein Trial: " + aktiverTrial + "\n\nBitte abwarten oder abbrechen.");
+      return;
+    }
+    aktiverTrial = trialName;
+    logEvent("Start " + trialName, btn);
+    spieleTon(880, 400, 1);
+    const ende = Date.now() + trialDauer(trialName) * 1000;
+    localStorage.setItem("saa_timer", JSON.stringify({ trial: trialName, ende: ende }));
+    zeigeTimer(trialName, ende);
+  }
+
+  function zeigeTimer(trialName, endeZeit) {
+    const panel = document.getElementById("timer-panel");
+    const info = trialName.startsWith("Testtrial")
+      ? testtrialInfo(trialName)
+      : (trialInfo(trialName) || { name: "—", thema: "" });
+    panel.style.display = "block";
+    document.getElementById("timer-trial").textContent = trialName;
+    document.getElementById("timer-person").textContent = info.name || "—";
+    document.getElementById("timer-thema").textContent = info.thema || "";
+    if (timerHandle) clearInterval(timerHandle);
+    const tick = () => {
+      const rest = Math.max(0, endeZeit - Date.now());
+      const s = Math.ceil(rest / 1000);
+      document.getElementById("timer-count").textContent =
+        Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+      if (rest <= 0) beendeTrial();
+    };
+    tick();
+    timerHandle = setInterval(tick, 200);
+  }
+
+  function beendeTrial() {
+    if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+    const trialName = aktiverTrial;
+    aktiverTrial = null;
+    localStorage.removeItem("saa_timer");
+    document.getElementById("timer-panel").style.display = "none";
+    if (!trialName) return;
+    spieleTon(523, 500, 2);
+    logEvent("Ende " + trialName, null);
+  }
+
+  function timerAbbrechen() {
+    if (!aktiverTrial) return;
+    if (!confirm("Trial abbrechen?\n\nEs wird kein Endton gespielt.")) return;
+    if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+    logEvent("Abbruch " + aktiverTrial, null);
+    aktiverTrial = null;
+    localStorage.removeItem("saa_timer");
+    document.getElementById("timer-panel").style.display = "none";
+  }
+
+  function restoreTimer() {
+    const raw = localStorage.getItem("saa_timer");
+    if (!raw) return;
+    try {
+      const t = JSON.parse(raw);
+      if (t.ende > Date.now()) { aktiverTrial = t.trial; zeigeTimer(t.trial, t.ende); }
+      else localStorage.removeItem("saa_timer");
+    } catch (e) { localStorage.removeItem("saa_timer"); }
+  }
+
+  // ── Wake Lock: Bildschirm anlassen ──
+  let wakeLock = null;
+  async function requestWakeLock() {
+    try {
+      if ("wakeLock" in navigator) {
+        wakeLock = await navigator.wakeLock.request("screen");
+      }
+    } catch (e) { /* kein Problem */ }
+  }
+  requestWakeLock();
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") requestWakeLock();
+  });
+
+  // ── Gespeicherte Sitzung wiederherstellen ──
+  (function() {
+    const saved = localStorage.getItem("saa_dyadId");
+    if (saved) {
+      dyadId = saved;
+      const sn = localStorage.getItem("saa_namen");
+      if (sn) Object.assign(namen, JSON.parse(sn));
+      const st = localStorage.getItem("saa_themen");
+      if (st) Object.assign(themen, JSON.parse(st));
+      zeigeMain();
+      restoreTimer();
+    }
+  })();
+</script>
+</body>
+</html>
