@@ -142,11 +142,38 @@
   let participantId = "";
   let triadId = "";
 
-  const SEQUENZ = [
-    "Demographie", "Attachment", "IRI",
-    "Testtrial 1", "Testtrial 2",
-    ...Array.from({length: 16}, (_, i) => "Trial " + (i + 1))
-  ];
+  const BASIS_FRAGEBOGEN = ["Demographie", "ECR", "IRI"];
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Reihenfolge von Demographie/ECR/IRI wird einmal pro Teilnehmer:in
+  // zufällig festgelegt und gespeichert (übersteht Reload)
+  function getBasisReihenfolge() {
+    const gespeichert = localStorage.getItem("sa_basisreihenfolge");
+    if (gespeichert) {
+      try { return JSON.parse(gespeichert); } catch (e) { /* neu würfeln */ }
+    }
+    const neu = shuffle(BASIS_FRAGEBOGEN);
+    localStorage.setItem("sa_basisreihenfolge", JSON.stringify(neu));
+    return neu;
+  }
+
+  function baueSequenz() {
+    return [
+      ...getBasisReihenfolge(),
+      "Testtrial 1", "Testtrial 2",
+      ...Array.from({length: 16}, (_, i) => "Trial " + (i + 1))
+    ];
+  }
+
+  let SEQUENZ = baueSequenz();
 
   // Fake-Socket: fängt die emits der Fragebögen ab und speichert lokal
   const socket = {
@@ -193,6 +220,7 @@
     participantId = val + rolle;
     localStorage.setItem("sa_dyadId", triadId);
     localStorage.setItem("sa_participantId", participantId);
+    SEQUENZ = baueSequenz();
     zeigeUebersicht();
   }
 
@@ -256,6 +284,7 @@
     localStorage.removeItem("sa_completed");
     localStorage.removeItem("sa_dyadId");
     localStorage.removeItem("sa_participantId");
+    localStorage.removeItem("sa_basisreihenfolge");
     location.reload();
   }
 
@@ -285,7 +314,7 @@
 
   // ── FRAGEBOGEN-DATEN ──────────────────────────────────
 
-  const ATTACHMENT_FRAGEN = [
+  const ECR_FRAGEN = [
     { id: "att_1",  text: "Ich habe Angst, die Liebe meines Partners/meiner Partnerin zu verlieren." },
     { id: "att_2",  text: "Ich mache mir oft Sorgen, dass mein Partner/meine Partnerin nicht bei mir bleiben will." },
     { id: "att_3",  text: "Ich fühle mich wohl damit, meine privaten Gedanken und Gefühle mit meinem Partner/meiner Partnerin zu teilen." },
@@ -342,15 +371,15 @@
         skalaBeschriftungen: ["nie", "selten", "manchmal", "oft", "immer"],
         fragebogen: "IRI"
       });
-    } else if (type === "ATTACHMENT") {
+    } else if (type === "ECR") {
       zeigeFragen({
-        titel: "Attachment",
+        titel: "ECR",
         anweisung: "Die folgenden Aussagen beziehen sich darauf, wie Sie sich in emotional bedeutsamen Partnerschaften fühlen. Bitte nehmen Sie zu jeder Aussage Stellung.",
-        fragen: ATTACHMENT_FRAGEN,
+        fragen: ECR_FRAGEN,
         labelLinks: "stimme gar nicht zu",
         labelRechts: "stimme völlig zu",
         skala: 7,
-        fragebogen: "Attachment"
+        fragebogen: "ECR"
       });
     } else if (type.startsWith("TRIAL") || type.startsWith("TESTTRIAL")) {
       zeigeTrialFragebogen(data.type);
