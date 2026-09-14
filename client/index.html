@@ -142,7 +142,7 @@
   let participantId = "";
   let triadId = "";
 
-  const BASIS_FRAGEBOGEN = ["Demographie", "ECR", "IRI"];
+  const BASIS_FRAGEBOGEN = ["Demo", "ECR", "IRI"];
 
   function shuffle(arr) {
     const a = [...arr];
@@ -153,7 +153,7 @@
     return a;
   }
 
-  // Reihenfolge von Demographie/ECR/IRI wird einmal pro Teilnehmer:in
+  // Reihenfolge von Demo/ECR/IRI wird einmal pro Teilnehmer:in
   // zufällig festgelegt und gespeichert (übersteht Reload)
   function getBasisReihenfolge() {
     const gespeichert = localStorage.getItem("sa_basisreihenfolge");
@@ -168,8 +168,7 @@
   function baueSequenz() {
     return [
       ...getBasisReihenfolge(),
-      "Testtrial 1", "Testtrial 2",
-      ...Array.from({length: 16}, (_, i) => "Trial " + (i + 1))
+      ...Array.from({length: 10}, (_, i) => "Trial " + (i + 1))
     ];
   }
 
@@ -374,20 +373,20 @@
     } else if (type === "ECR") {
       zeigeFragen({
         titel: "ECR",
-        anweisung: "Die folgenden Aussagen beziehen sich darauf, wie Sie sich in emotional bedeutsamen Partnerschaften fühlen. Bitte nehmen Sie zu jeder Aussage Stellung.",
+        anweisung: "Die folgenden Aussagen beziehen sich <strong>NICHT</strong> auf die Beziehung zu ihrem/ihrer Studienpartner/in. Die folgenden Aussagen beziehen sich darauf, wie Sie sich in emotional bedeutsamen Partnerschaften fühlen. Bitte nehmen Sie zu jeder Aussage Stellung.",
         fragen: ECR_FRAGEN,
         labelLinks: "stimme gar nicht zu",
         labelRechts: "stimme völlig zu",
         skala: 7,
         fragebogen: "ECR"
       });
-    } else if (type.startsWith("TRIAL") || type.startsWith("TESTTRIAL")) {
+    } else if (type.startsWith("TRIAL")) {
       zeigeTrialFragebogen(data.type);
     } else if (type === "RESET") {
       const aq = document.getElementById("active-questionnaire");
       if (aq) aq.remove();
       document.getElementById("status").style.display = "block";
-    } else if (type === "DEMOGRAPHIE") {
+    } else if (type === "DEMO") {
       zeigeDemographie();
     }
   }
@@ -419,7 +418,7 @@
 
     const anweisung = document.createElement("p");
     anweisung.className = "q-instruction";
-    anweisung.textContent = config.anweisung;
+    anweisung.innerHTML = config.anweisung;   // erlaubt Hervorhebungen wie <strong>
     wrapper.appendChild(anweisung);
 
     config.fragen.forEach((frage, fi) => {
@@ -510,6 +509,11 @@
         placeholder: "Alter in Jahren"
       },
       {
+        id: "demo_geschlecht_sozial", typ: "auswahl",
+        frage: "Soziales Geschlecht?",
+        optionen: ["Männlich", "Weiblich", "Divers"]
+      },
+      {
         id: "demo_beruf", typ: "text",
         frage: "Welcher beruflichen Tätigkeit gehen Sie derzeit nach?",
         placeholder: "Beruf"
@@ -566,7 +570,7 @@
     function sendeAntwort(id, wert) {
       socket.emit("response", {
         dyad_id: triadId, participant: participantId,
-        fragebogen: "Demographie", question: id, value: wert, time: Date.now()
+        fragebogen: "Demo", question: id, value: wert, time: Date.now()
       });
     }
 
@@ -579,7 +583,7 @@
         document.getElementById("status").style.display = "block";
         socket.emit("fragebogen-fertig", {
           dyad_id: triadId, participant: participantId,
-          fragebogen: "Demographie", time: Date.now()
+          fragebogen: "Demo", time: Date.now()
         });
       }
     }
@@ -608,12 +612,23 @@
         input.placeholder = q.placeholder;
         w.appendChild(input);
 
+        const fehler = document.createElement("p");
+        fehler.style.cssText = "color:#c00;font-size:14px;font-weight:600;margin-top:0.6rem;display:none;";
+        fehler.textContent = "Bitte eine Antwort eingeben.";
+        w.appendChild(fehler);
+
         const btn = document.createElement("button");
         btn.className = "weiter-btn";
         btn.textContent = index < DEMO_FRAGEN.length - 1 ? "Weiter →" : "Abschließen";
-        btn.onclick = () => { sendeAntwort(q.id, input.value.trim() || "—"); weiter(index); };
+        btn.onclick = () => {
+          const wert = input.value.trim();
+          if (!wert) { fehler.style.display = "block"; input.focus(); return; }
+          sendeAntwort(q.id, wert);
+          weiter(index);
+        };
         w.appendChild(btn);
         input.addEventListener("keydown", e => { if (e.key === "Enter") btn.click(); });
+        input.addEventListener("input", () => { fehler.style.display = "none"; });
         setTimeout(() => input.focus(), 100);
 
       } else if (q.typ === "auswahl") {

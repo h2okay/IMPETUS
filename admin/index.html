@@ -47,7 +47,7 @@
       text-transform: uppercase; margin-bottom: 0.75rem;
     }
     .themen-zeile { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
-    .themen-zeile .tz-nr { font-size: 10px; color: #555; min-width: 52px; letter-spacing: 0.1em; }
+    .themen-zeile .tz-nr { font-size: 10px; color: #555; min-width: 82px; letter-spacing: 0.08em; }
     .name-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; justify-content: center; }
     .name-row .g-label {
       font-size: 12px; letter-spacing: 0.15em; color: #666;
@@ -82,7 +82,7 @@
     .q-btn:hover { background: #1a1a1a; border-color: #555; color: #fff; }
     .q-btn.sent { border-color: #c8ff00; color: #c8ff00; cursor: pointer; }
 
-    /* Trials und Testtrials als Liste untereinander */
+    /* Trials als Liste untereinander */
     .trial-liste { display: flex; flex-direction: column; gap: 0.35rem; }
     .trial-btn {
       display: flex; align-items: baseline; gap: 0.75rem;
@@ -142,18 +142,16 @@
 
   <div class="themen-block">
     <p class="tb-kopf">Person A</p>
-    <div class="themen-zeile"><span class="tz-nr">Trial 2</span><input id="thema-A-0" class="setup-input thema-input" type="text" placeholder="Thema 1" /></div>
-    <div class="themen-zeile"><span class="tz-nr">Trial 6</span><input id="thema-A-1" class="setup-input thema-input" type="text" placeholder="Thema 2" /></div>
-    <div class="themen-zeile"><span class="tz-nr">Trial 10</span><input id="thema-A-2" class="setup-input thema-input" type="text" placeholder="Thema 3" /></div>
-    <div class="themen-zeile"><span class="tz-nr">Trial 14</span><input id="thema-A-3" class="setup-input thema-input" type="text" placeholder="Thema 4" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 2 · neg</span><input id="thema-A-0" class="setup-input thema-input" type="text" placeholder="negatives Thema 1" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 6 · neg</span><input id="thema-A-1" class="setup-input thema-input" type="text" placeholder="negatives Thema 2" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 9 · pos</span><input id="thema-A-2" class="setup-input thema-input" type="text" placeholder="positives Thema" /></div>
   </div>
 
   <div class="themen-block">
     <p class="tb-kopf">Person B</p>
-    <div class="themen-zeile"><span class="tz-nr">Trial 4</span><input id="thema-B-0" class="setup-input thema-input" type="text" placeholder="Thema 1" /></div>
-    <div class="themen-zeile"><span class="tz-nr">Trial 8</span><input id="thema-B-1" class="setup-input thema-input" type="text" placeholder="Thema 2" /></div>
-    <div class="themen-zeile"><span class="tz-nr">Trial 12</span><input id="thema-B-2" class="setup-input thema-input" type="text" placeholder="Thema 3" /></div>
-    <div class="themen-zeile"><span class="tz-nr">Trial 16</span><input id="thema-B-3" class="setup-input thema-input" type="text" placeholder="Thema 4" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 4 · neg</span><input id="thema-B-0" class="setup-input thema-input" type="text" placeholder="negatives Thema 1" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 8 · neg</span><input id="thema-B-1" class="setup-input thema-input" type="text" placeholder="negatives Thema 2" /></div>
+    <div class="themen-zeile"><span class="tz-nr">Trial 10 · pos</span><input id="thema-B-2" class="setup-input thema-input" type="text" placeholder="positives Thema" /></div>
   </div>
 
   <button id="start-btn" onclick="startSession()">Sitzung starten</button>
@@ -184,9 +182,6 @@
       <button class="q-btn" onclick="logEvent('Start Interaktion', this)">Start Interaktion</button>
     </div>
 
-    <p class="section-label">Testtrials</p>
-    <div id="testtrial-buttons" class="trial-liste" style="margin-bottom:1.5rem;"></div>
-
     <p class="section-label">Trials</p>
     <div id="trial-buttons" class="trial-liste" style="margin-bottom:1.5rem;"></div>
 
@@ -216,7 +211,7 @@
 <script>
   let dyadId = "";
   const namen  = { A: "", B: "" };
-  const themen = { A: ["", "", "", ""], B: ["", "", "", ""] };
+  const themen = { A: ["", "", ""], B: ["", "", ""] };
 
   function lokalerZeitstempel(ms) {
     const d = ms ? new Date(ms) : new Date();
@@ -240,7 +235,7 @@
 
     ["A", "B"].forEach(r => {
       namen[r] = (document.getElementById("name-" + r).value || "").trim();
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 3; i++) {
         themen[r][i] = (document.getElementById("thema-" + r + "-" + i).value || "").trim();
       }
     });
@@ -413,65 +408,60 @@
   // ── TRIAL-TIMER UND TÖNE ─────────────────────────────
 
   const TRIAL_SEQUENCE = [
-    "Testtrial 1", "Testtrial 2",
-    ...Array.from({length: 16}, (_, i) => "Trial " + (i + 1))
+    ...Array.from({length: 10}, (_, i) => "Trial " + (i + 1))
   ];
-  const TRIAL_DAUER = { testtrial: 60, trial: 180 }; // Sekunden
+  const TRIAL_DAUER = { neutral: 120, eigen: 240 }; // Sekunden
   let timerHandle = null;
   let aktiverTrial = null;
 
   function trialDauer(name) {
-    return name.toLowerCase().startsWith("testtrial") ? TRIAL_DAUER.testtrial : TRIAL_DAUER.trial;
+    const i = trialInfo(name);
+    return (i && i.art === "neutral") ? TRIAL_DAUER.neutral : TRIAL_DAUER.eigen;
   }
 
-  // ── Vorgegebene Themen ────────────────────────────────
-  const TESTTRIAL_THEMEN = {
-    "Testtrial 1": "Beschreibung Raum",
-    "Testtrial 2": "Beschreibung Tagesablauf"
+  // ── Vorgegebene neutrale Themen ───────────────────────
+  const NEUTRALE_THEMEN = {
+    1: "Beschreibung Wäschewaschen",
+    3: "Beschreibung Wohnung putzen",
+    5: "Beschreibung Ei kochen",
+    7: "Beschreibung Zimmerpflanzenpflege"
   };
 
-  // Neutrale (vorgegebene) Themen der ungeraden Trials
-  const NEUTRALE_THEMEN = {
-    1:  "Beschreibung Wäschewaschen",
-    3:  "Beschreibung Wohnung putzen",
-    5:  "Beschreibung Ei kochen",
-    7:  "Beschreibung Zimmerpflanzenpflege",
-    9:  "Beschreibung Lebensmitteleinkauf",
-    11: "Beschreibung Koffer packen",
-    13: "Beschreibung Morgenroutine",
-    15: "Beschreibung Abendroutine"
+  // ── Ablaufplan der 10 Trials ──────────────────────────
+  // art: "neutral" = vorgegebenes Thema, "negativ"/"positiv" = eigenes Thema
+  // idx: Index im Themen-Array der jeweiligen Person (0-2)
+  const TRIAL_PLAN = {
+    1:  { rolle: "A", art: "neutral", idx: null },
+    2:  { rolle: "A", art: "negativ", idx: 0 },
+    3:  { rolle: "B", art: "neutral", idx: null },
+    4:  { rolle: "B", art: "negativ", idx: 0 },
+    5:  { rolle: "A", art: "neutral", idx: null },
+    6:  { rolle: "A", art: "negativ", idx: 1 },
+    7:  { rolle: "B", art: "neutral", idx: null },
+    8:  { rolle: "B", art: "negativ", idx: 1 },
+    9:  { rolle: "A", art: "positiv", idx: 2 },
+    10: { rolle: "B", art: "positiv", idx: 2 }
   };
 
   // ── Trial-Zuordnung ───────────────────────────────────
-  // Sprecherfolge: A neutral, A eigenes, B neutral, B eigenes, ...
-  //   ungerade Trials = neutrales (vorgegebenes) Thema
-  //   gerade Trials   = selbst eingereichtes Thema
   function trialInfo(trialName) {
     const m = trialName.match(/^Trial (\d+)$/);
     if (!m) return null;
     const n = parseInt(m[1], 10);
-    const rolle = (Math.ceil(n / 2) % 2 === 1) ? "A" : "B";
-    const person = namen[rolle] || ("Person " + rolle);
-    if (n % 2 === 1) {
-      return { rolle: rolle, name: person,
+    const plan = TRIAL_PLAN[n];
+    if (!plan) return null;
+
+    const person = namen[plan.rolle] || ("Person " + plan.rolle);
+    if (plan.art === "neutral") {
+      return { rolle: plan.rolle, name: person, art: plan.art,
                thema: NEUTRALE_THEMEN[n] || "Neutral", eigen: false };
     }
-    const idx = rolle === "A" ? (n - 2) / 4 : (n - 4) / 4;
-    const thema = (themen[rolle] && themen[rolle][idx]) || "";
-    return { rolle: rolle, name: person, thema: thema || "(kein Thema)", eigen: true };
-  }
-
-  function testtrialInfo(name) {
-    const rolle = name === "Testtrial 1" ? "A" : "B";
-    return { rolle: rolle, name: namen[rolle] || ("Person " + rolle),
-             thema: TESTTRIAL_THEMEN[name] || "", eigen: false };
+    const thema = (themen[plan.rolle] && themen[plan.rolle][plan.idx]) || "";
+    return { rolle: plan.rolle, name: person, art: plan.art,
+             thema: thema || "(kein Thema)", eigen: true };
   }
 
   function trialLabel(name) {
-    if (name.startsWith("Testtrial")) {
-      const ti = testtrialInfo(name);
-      return name + " — " + ti.name + ": " + ti.thema;
-    }
     const i = trialInfo(name);
     return i ? name + " — " + i.name + ": " + i.thema : name;
   }
@@ -511,13 +501,12 @@
   }
 
   function baueTrialButtons() {
-    const testCont = document.getElementById("testtrial-buttons");
     const cont = document.getElementById("trial-buttons");
-    if (!cont || !testCont) return;
-    testCont.innerHTML = "";
+    if (!cont) return;
     cont.innerHTML = "";
+
     TRIAL_SEQUENCE.forEach(name => {
-      const info = name.startsWith("Testtrial") ? testtrialInfo(name) : trialInfo(name);
+      const info = trialInfo(name);
       const btn = document.createElement("button");
       btn.className = "q-btn trial-btn";
       btn.id = "tsbtn-" + name.replace(/ /g, "-");
@@ -539,7 +528,7 @@
       btn.appendChild(thema);
 
       btn.onclick = () => starteTrial(name, btn);
-      (name.startsWith("Testtrial") ? testCont : cont).appendChild(btn);
+      cont.appendChild(btn);
     });
   }
 
@@ -574,9 +563,7 @@
 
   function zeigeTimer(trialName, endeZeit) {
     const panel = document.getElementById("timer-panel");
-    const info = trialName.startsWith("Testtrial")
-      ? testtrialInfo(trialName)
-      : (trialInfo(trialName) || { name: "—", thema: "" });
+    const info = trialInfo(trialName) || { name: "—", thema: "" };
     panel.style.display = "block";
     document.getElementById("timer-trial").textContent = trialName;
     document.getElementById("timer-person").textContent = info.name || "—";
