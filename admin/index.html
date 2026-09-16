@@ -82,6 +82,11 @@
     .q-btn:hover { background: #1a1a1a; border-color: #555; color: #fff; }
     .q-btn.sent { border-color: #c8ff00; color: #c8ff00; cursor: pointer; }
 
+    /* Klopf-Marker zur EKG-Synchronisation */
+    .klopf-btn { border-color: #2a6f8f; color: #4bb3e8; }
+    .klopf-btn:hover:not(:disabled) { border-color: #4bb3e8; color: #8ad5f7; background: #0d1d26; }
+    .klopf-btn.sent { border-color: #4bb3e8; color: #4bb3e8; background: #0d1d26; }
+
     /* Trials als Liste untereinander */
     .trial-liste { display: flex; flex-direction: column; gap: 0.35rem; }
     .trial-btn {
@@ -179,6 +184,7 @@
       <button class="q-btn" onclick="logEvent('Start EKG - A', this)">Start EKG - A</button>
       <button class="q-btn" onclick="logEvent('Start EKG - B', this)">Start EKG - B</button>
       <button class="q-btn" onclick="logEvent('Start Baseline', this)">Start Baseline</button>
+      <button class="q-btn klopf-btn" onclick="logEvent('EKG Klopfen 1', this)">EKG Klopfen 1</button>
       <button class="q-btn" onclick="logEvent('Start Interaktion', this)">Start Interaktion</button>
     </div>
 
@@ -188,6 +194,7 @@
     <p class="section-label">Ende Testung</p>
     <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:2rem;">
       <button class="q-btn" onclick="logEvent('Ende Interaktion', this)">Ende Interaktion</button>
+      <button class="q-btn klopf-btn" onclick="logEvent('EKG Klopfen 2', this)">EKG Klopfen 2</button>
       <button class="q-btn" onclick="logEvent('Ende EKG - A', this)">Ende EKG - A</button>
       <button class="q-btn" onclick="logEvent('Ende EKG - B', this)">Ende EKG - B</button>
       <button class="q-btn" onclick="logEvent('Ende Testung', this)">Ende Testung</button>
