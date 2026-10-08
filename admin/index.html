@@ -307,7 +307,7 @@
   function saExport() {
     const events = getEvents();
     if (events.length === 0) { alert("Keine Ereignisse vorhanden."); return; }
-    const cols = ["dyad_id", "participant", "fragebogen", "question", "value", "time", "server_timestamp", "event", "offset_ms", "rtt_ms", "zeitquelle"];
+    const cols = ["dyad_id", "participant", "fragebogen", "question", "value", "time", "server_timestamp", "event", "offset_ms", "rtt_ms", "zeitquelle", "tablet_zeit", "internet_zeit", "tablet_ms", "internet_ms"];
     const csvLines = [cols.join(",")];
     events.forEach(r => {
       csvLines.push(cols.map(c => '"' + String(r[c] !== undefined ? r[c] : "").replace(/"/g, '""') + '"').join(","));
@@ -359,8 +359,9 @@
     const referenz = api.lies(daten);
     if (!referenz || isNaN(referenz)) throw new Error("Antwort nicht lesbar");
     const rtt = t3 - t0;
+    // t3 = Stand der Geräteuhr (Tablet) im Moment der Antwort
     const offset = Math.round(referenz + rtt / 2 - t3);
-    return { offset: offset, rtt: rtt, api: api.name };
+    return { offset: offset, rtt: rtt, api: api.name, tablet: t3 };
   }
 
   async function zeitSync() {
@@ -389,24 +390,32 @@
     const beste = messungen.reduce((a, b) => (b.rtt < a.rtt ? b : a));
     const vz = beste.offset > 0 ? "+" : "";
 
-    status.innerHTML =
-      "Geräteuhr weicht ab um <span class='val'>" + vz + beste.offset + " ms</span> " +
-      "(Referenzzeit minus Geräteuhr)<br>" +
-      "Messunsicherheit ca. <span class='val'>±" + Math.round(beste.rtt / 2) + " ms</span> " +
-      "(RTT " + beste.rtt + " ms, " + messungen.length + " Messungen, Quelle " + beste.api + ")";
+    // Stand beider Uhren im Moment der besten Messung
+    const tabletMs = beste.tablet;
+    const internetMs = tabletMs + beste.offset;
 
-    // Als eigener Eintrag ins Protokoll
-    const now = Date.now();
+    status.innerHTML =
+      "Tablet-Uhr &nbsp;<span class='val'>" + lokalerZeitstempel(tabletMs) + "</span><br>" +
+      "Internetzeit <span class='val'>" + lokalerZeitstempel(internetMs) + "</span><br>" +
+      "Abweichung <span class='val'>" + vz + beste.offset + " ms</span> " +
+      "(Internetzeit minus Tablet-Uhr), Messunsicherheit ca. " +
+      "<span class='val'>±" + Math.round(beste.rtt / 2) + " ms</span><br>" +
+      "<span style='color:#666'>RTT " + beste.rtt + " ms, " + messungen.length +
+      " Messungen, Quelle " + beste.api + "</span>";
+
+    // Als eigener Eintrag ins Protokoll — beide Uhren werden mitgeschrieben
     const events = getEvents();
     events.push({
       dyad_id: dyadId, participant: "admin", fragebogen: "—",
-      question: "—", value: "—", time: now,
-      server_timestamp: lokalerZeitstempel(now), event: "Zeitabgleich",
-      offset_ms: beste.offset, rtt_ms: beste.rtt, zeitquelle: beste.api
+      question: "—", value: "—", time: tabletMs,
+      server_timestamp: lokalerZeitstempel(tabletMs), event: "Zeitabgleich",
+      offset_ms: beste.offset, rtt_ms: beste.rtt, zeitquelle: beste.api,
+      tablet_zeit: lokalerZeitstempel(tabletMs), internet_zeit: lokalerZeitstempel(internetMs),
+      tablet_ms: tabletMs, internet_ms: internetMs
     });
     localStorage.setItem("saa_events", JSON.stringify(events));
-    addLog("<span class='sync'>⏱ Zeitabgleich</span> — Offset " + vz + beste.offset +
-           " ms (±" + Math.round(beste.rtt / 2) + " ms) um " + uhrzeit(now));
+    addLog("<span class='sync'>⏱ Zeitabgleich</span> — Tablet " + uhrzeit(tabletMs) +
+           " / Internet " + uhrzeit(internetMs) + " (" + vz + beste.offset + " ms)");
 
     btn.disabled = false;
     btn.textContent = "Erneut abgleichen";
