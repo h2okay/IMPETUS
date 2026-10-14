@@ -136,13 +136,12 @@
 
 <p id="status" style="display:none;">Warten...</p>
 
-<script>
-  // ══ STANDALONE-MODUS: kein Server, alles lokal ══════════
+<script>  // ══ STANDALONE-MODUS: kein Server, alles lokal ══════════
 
   let participantId = "";
   let triadId = "";
 
-  const BASIS_FRAGEBOGEN = ["Demo", "ECR", "IRI"];
+  const BASIS_FRAGEBOGEN = ["Demo", "ECR", "IRI", "EI", "PHQ8"];
 
   function shuffle(arr) {
     const a = [...arr];
@@ -153,7 +152,7 @@
     return a;
   }
 
-  // Reihenfolge von Demo/ECR/IRI wird einmal pro Teilnehmer:in
+  // Reihenfolge von Demo/ECR/IRI/EI/PHQ8 wird einmal pro Teilnehmer:in
   // zufällig festgelegt und gespeichert (übersteht Reload)
   function getBasisReihenfolge() {
     const gespeichert = localStorage.getItem("sa_basisreihenfolge");
@@ -328,6 +327,44 @@
     { id: "att_12", text: "Es fällt mir leicht, meinem Partner/meiner Partnerin gegenüber liebevoll zu sein." }
   ];
 
+  // ── PHQ-8 (Gesundheitsfragebogen für Patienten, deutsche Fassung) ──
+  // 8 Items, Antwortskala 0-3. Summenscore 0-24.
+  // Entspricht dem PHQ-9 ohne das Suizidalitätsitem.
+  const PHQ8_FRAGEN = [
+    { id: "phq_1", text: "Wenig Interesse oder Freude an Ihren Tätigkeiten" },
+    { id: "phq_2", text: "Niedergeschlagenheit, Schwermut oder Hoffnungslosigkeit" },
+    { id: "phq_3", text: "Schwierigkeiten, ein- oder durchzuschlafen, oder vermehrter Schlaf" },
+    { id: "phq_4", text: "Müdigkeit oder Gefühl, keine Energie zu haben" },
+    { id: "phq_5", text: "Verminderter Appetit oder übermäßiges Bedürfnis zu essen" },
+    { id: "phq_6", text: "Schlechte Meinung von sich selbst; Gefühl, ein Versager zu sein oder die Familie enttäuscht zu haben" },
+    { id: "phq_7", text: "Schwierigkeiten, sich auf etwas zu konzentrieren, z.B. beim Zeitunglesen oder Fernsehen" },
+    { id: "phq_8", text: "Waren Ihre Bewegungen oder Ihre Sprache so verlangsamt, dass es auch anderen auffallen würde? Oder waren Sie im Gegenteil „zappelig“ oder ruhelos und hatten dadurch einen stärkeren Bewegungsdrang als sonst?" }
+  ];
+
+  // ── EMPATHY INDEX (Jordan, Amir & Bloom, 2016) ──────────
+  // 14 Items, zwei Subskalen zu je 7:
+  //   ei_emp_1..7 = Empathy (affektives Mitfühlen)
+  //   ei_con_1..7 = Behavioral Contagion (Verhaltensansteckung)
+  // Items fest alternierend angeordnet, damit die Subskalen nicht
+  // als Blöcke hintereinander stehen.
+  // Deutsch: Arbeitsübersetzung des englischen Originals (nicht validiert).
+  const EI_FRAGEN = [
+    { id: "ei_emp_1", text: "Wenn ich jemanden sehe, der aufgeregt ist, werde ich selbst aufgeregt." },
+    { id: "ei_con_1", text: "Wenn ich jemanden gähnen sehe, muss ich wahrscheinlich auch gähnen." },
+    { id: "ei_emp_2", text: "Manchmal merke ich, dass ich die Gefühle der Menschen um mich herum übernehme, auch wenn ich gar nicht versuche, das zu fühlen, was sie fühlen." },
+    { id: "ei_con_2", text: "Wenn ich sehe, wie sich jemand übergibt, würge ich selbst." },
+    { id: "ei_emp_3", text: "Wenn ich einen Film sehe und sich eine Figur am Bein verletzt, spüre ich selbst Schmerz im Bein." },
+    { id: "ei_con_3", text: "Ich ertappe mich dabei, wie ich die Arme oder Beine genauso überkreuze wie die Person, mit der ich spreche." },
+    { id: "ei_emp_4", text: "Wenn ich eine Geschichte höre, in der jemand Angst hat, stelle ich mir vor, wie viel Angst ich in dieser Situation hätte, und bekomme selbst Angst." },
+    { id: "ei_con_4", text: "Wenn ich ein Video von einem lächelnden Baby sehe, muss ich selbst lächeln." },
+    { id: "ei_emp_5", text: "Wenn ich eine peinliche Geschichte über jemand anderen höre, ist es mir selbst ein wenig peinlich." },
+    { id: "ei_con_5", text: "Wenn ich sehe, dass jemand plötzlich wegschaut, schaue ich automatisch in dieselbe Richtung." },
+    { id: "ei_emp_6", text: "Ich kann keine Sendungen sehen, in denen Tiere einander jagen, weil ich nervös werde, als würde ich selbst gejagt." },
+    { id: "ei_con_6", text: "Wenn ich jemandem zusehe, der auf einem Schwebebalken läuft, lehne ich mich mit, wenn er sich lehnt." },
+    { id: "ei_emp_7", text: "Wenn ich sehe, dass jemand zappelt, werde ich selbst unruhig." },
+    { id: "ei_con_7", text: "Wenn ich mich mit jemandem unterhalte und die Person sich an der Nase kratzt, kratze ich mich auch an der Nase." }
+  ];
+
   const IRI_FRAGEN = [
     { id: "iri_1",  text: "Ich empfinde warmherzige Gefühle für Leute, denen es weniger gut geht als mir." },
     { id: "iri_2",  text: "Die Gefühle einer Person in einem Roman kann ich mir sehr gut vorstellen." },
@@ -369,6 +406,30 @@
         skala: 5,
         skalaBeschriftungen: ["nie", "selten", "manchmal", "oft", "immer"],
         fragebogen: "IRI"
+      });
+    } else if (type === "PHQ8") {
+      zeigeFragen({
+        titel: "PHQ-8",
+        anweisung: "Wie oft fühlten Sie sich im Verlauf der letzten 2 Wochen durch die folgenden Beschwerden beeinträchtigt?"
+          + "<br><br><strong>0</strong> = Überhaupt nicht &nbsp;·&nbsp; <strong>1</strong> = An einzelnen Tagen"
+          + " &nbsp;·&nbsp; <strong>2</strong> = An mehr als der Hälfte der Tage &nbsp;·&nbsp; <strong>3</strong> = Beinahe jeden Tag",
+        fragen: PHQ8_FRAGEN,
+        labelLinks: "Überhaupt nicht",
+        labelRechts: "Beinahe jeden Tag",
+        skala: 4,
+        startWert: 0,            // Originalscoring 0-3
+        fragebogen: "PHQ8"
+      });
+    } else if (type === "EI") {
+      zeigeFragen({
+        titel: "EI",
+        anweisung: "Die folgenden Aussagen beschreiben, wie Sie in verschiedenen Situationen reagieren. Bitte geben Sie an, wie gut die jeweilige Aussage auf Sie zutrifft.",
+        fragen: EI_FRAGEN,
+        labelLinks: "trifft gar nicht auf mich zu",
+        labelRechts: "trifft sehr gut auf mich zu",
+        skala: 5,
+        startWert: 0,            // Originalscoring 0-4
+        fragebogen: "EI"
       });
     } else if (type === "ECR") {
       zeigeFragen({
@@ -443,11 +504,14 @@
       const scale = document.createElement("div");
       scale.className = "scale";
 
-      for (let i = 1; i <= config.skala; i++) {
+      // startWert: erster Skalenwert (Standard 1; z.B. 0 beim Empathy Index)
+      const von = (config.startWert !== undefined) ? config.startWert : 1;
+      const bis = von + config.skala - 1;
+      for (let i = von; i <= bis; i++) {
         const btn = document.createElement("button");
         btn.className = "scale-btn";
         btn.textContent = i;
-        if (config.skalaBeschriftungen) btn.title = config.skalaBeschriftungen[i-1] || "";
+        if (config.skalaBeschriftungen) btn.title = config.skalaBeschriftungen[i - von] || "";
         btn.onclick = () => {
           // Deselect others
           scale.querySelectorAll(".scale-btn").forEach(b => b.classList.remove("selected"));
