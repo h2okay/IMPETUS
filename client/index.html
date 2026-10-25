@@ -621,6 +621,10 @@
           "Arbeitslos", "In Elternzeit", "In Rente / Pension",
           "Nicht erwerbstätig aus anderen Gründen"
         ]
+      },
+      {
+        id: "demo_freundschaft", typ: "freundschaft",
+        frage: "Zum Abschluss einige Fragen zu Ihrer Freundschaft mit Ihrem/Ihrer Studienpartner/in."
       }
     ];
 
@@ -694,6 +698,124 @@
         input.addEventListener("keydown", e => { if (e.key === "Enter") btn.click(); });
         input.addEventListener("input", () => { fehler.style.display = "none"; });
         setTimeout(() => input.focus(), 100);
+
+      } else if (q.typ === "freundschaft") {
+        const werte = {};
+
+        function fblock(text) {
+          const h = document.createElement("p");
+          h.className = "question-text";
+          h.style.cssText = "margin:1.7rem 0 0.7rem 0;";
+          h.textContent = text;
+          w.appendChild(h);
+        }
+        function fmarkiere(gruppe, btn) {
+          gruppe.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "#888";
+            b.style.fontWeight = "normal";
+          });
+          btn.style.background = "#d9ecd9";
+          btn.style.borderColor = "#2a7d4f";
+          btn.style.fontWeight = "700";
+          fehler.style.display = "none";
+        }
+
+        // 1) Dauer der Freundschaft
+        fblock("Wie lange sind Sie beide circa befreundet?");
+        const fInput = document.createElement("input");
+        fInput.type = "text";
+        fInput.className = "text-input";
+        fInput.placeholder = "Anzahl Jahre, z.B. 1.5";
+        fInput.addEventListener("input", () => { fehler.style.display = "none"; });
+        w.appendChild(fInput);
+
+        // 2) Subjektive Naehe 1-7
+        fblock("Wie eng sind Sie beide befreundet?");
+        const fScale = document.createElement("div");
+        fScale.className = "scale";
+        const fScaleBtns = [];
+        for (let i = 1; i <= 7; i++) {
+          const b = document.createElement("button");
+          b.className = "scale-btn";
+          b.textContent = i;
+          b.onclick = () => { werte.demo_freund_naehe = i; fmarkiere(fScaleBtns, b); };
+          fScaleBtns.push(b);
+          fScale.appendChild(b);
+        }
+        w.appendChild(fScale);
+        const fLabels = document.createElement("div");
+        fLabels.className = "scale-labels";
+        fLabels.innerHTML = "<span>nicht eng</span><span>sehr eng</span>";
+        w.appendChild(fLabels);
+
+        // 3) IOS-Skala (Aron, Aron & Smollan, 1992)
+        fblock("Welches Bild beschreibt Ihre Beziehung zu Ihrem/Ihrer Studienpartner/in am besten?");
+        const fLegende = document.createElement("p");
+        fLegende.style.cssText = "font-size:14px;color:#555;margin:-0.3rem 0 0.8rem 0;";
+        fLegende.textContent = "Linker Kreis: Sie selbst. Rechter Kreis: Ihr/Ihre Studienpartner/in.";
+        w.appendChild(fLegende);
+
+        const fIosBox = document.createElement("div");
+        fIosBox.style.cssText = "display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;";
+        const fIosBtns = [];
+        for (let i = 1; i <= 7; i++) {
+          const b = document.createElement("button");
+          b.style.cssText = "background:#fff;border:2px solid #888;border-radius:8px;"
+                          + "padding:0.4rem 0.3rem 0.2rem 0.3rem;cursor:pointer;line-height:1;";
+          const abstand = 36 - (i - 1) * (26 / 6);
+          b.innerHTML =
+            '<svg width="76" height="44" viewBox="0 0 76 44">'
+            + '<circle cx="' + (38 - abstand / 2).toFixed(1) + '" cy="22" r="18" fill="none" stroke="#333" stroke-width="2"/>'
+            + '<circle cx="' + (38 + abstand / 2).toFixed(1) + '" cy="22" r="18" fill="none" stroke="#333" stroke-width="2"/>'
+            + '</svg>'
+            + '<span style="display:block;font-size:14px;margin-top:2px;">' + i + '</span>';
+          b.onclick = () => { werte.demo_freund_ios = i; fmarkiere(fIosBtns, b); };
+          fIosBtns.push(b);
+          fIosBox.appendChild(b);
+        }
+        w.appendChild(fIosBox);
+
+        // 4) Kontakthaeufigkeit
+        fblock("Wie oft hatten Sie in den letzten 4 Wochen Kontakt?");
+        const fKontaktOpt = [
+          "Täglich", "Mehrmals pro Woche", "Etwa einmal pro Woche",
+          "Seltener als einmal pro Woche"
+        ];
+        const fKontaktBtns = [];
+        fKontaktOpt.forEach(opt => {
+          const b = document.createElement("button");
+          b.className = "option-btn";
+          b.textContent = opt;
+          b.onclick = () => { werte.demo_freund_kontakt = opt; fmarkiere(fKontaktBtns, b); };
+          fKontaktBtns.push(b);
+          w.appendChild(b);
+        });
+
+        // Fehlermeldung + Abschluss
+        const fehler = document.createElement("p");
+        fehler.style.cssText = "color:#c00;font-size:14px;font-weight:600;margin-top:1rem;display:none;";
+        fehler.textContent = "Bitte alle vier Fragen beantworten.";
+        w.appendChild(fehler);
+
+        const fBtn = document.createElement("button");
+        fBtn.className = "weiter-btn";
+        fBtn.textContent = index < DEMO_FRAGEN.length - 1 ? "Weiter →" : "Abschließen";
+        fBtn.onclick = () => {
+          const dauer = fInput.value.trim();
+          if (!dauer || werte.demo_freund_naehe === undefined
+              || werte.demo_freund_ios === undefined
+              || werte.demo_freund_kontakt === undefined) {
+            fehler.style.display = "block";
+            return;
+          }
+          sendeAntwort("demo_freund_dauer", dauer);
+          sendeAntwort("demo_freund_naehe", werte.demo_freund_naehe);
+          sendeAntwort("demo_freund_ios", werte.demo_freund_ios);
+          sendeAntwort("demo_freund_kontakt", werte.demo_freund_kontakt);
+          weiter(index);
+        };
+        w.appendChild(fBtn);
 
       } else if (q.typ === "auswahl") {
         q.optionen.forEach(opt => {
